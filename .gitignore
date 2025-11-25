@@ -1,32 +1,41 @@
-# Build results
-[Bb]in/
-[Oo]bj/
-[Dd]ebug/
-[Rr]elease/
+# Compiled binaries
+bin/
+obj/
 
-# User-specific files
-*.suo
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
 *.user
+*.suo
 *.userosscache
 *.sln.docstates
 
-# Visual Studio cache/options
-.vs/
+# VS Code
 .vscode/
 
-# NuGet Packages
-*.nupkg
-**/packages/*
+# Logs
+*.log
 
-# Build outputs
-*.dll
-*.exe
-*.pdb
+# Dotnet tools
+**/Properties/launchSettings.json
+
+# Build results
+[Bb]uild/
+[Dd]ebug/
+[Rr]elease/
+*.dbmdl
+
+# NuGet
+*.nupkg
+# Packages
+**/packages/*
+!**/packages/build/
+
+# EF: include migrations in source control
 
 # OS files
 .DS_Store
 Thumbs.db
-
-# Captured PCAP files (optional - uncomment if you don't want to commit captures)
-# *.pcap
-# *.pcapng
