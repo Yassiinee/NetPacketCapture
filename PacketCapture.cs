@@ -1,10 +1,6 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+using Serilog;
 using SharpPcap;
 using SharpPcap.LibPcap;
-using PacketDotNet;
 
 namespace NetPacketCapture
 {
@@ -20,7 +16,7 @@ namespace NetPacketCapture
         private readonly PacketDisplay _display;
         private PcapWriter _pcapWriter;
         private int _packetCount;
-        private readonly object _lockObj = new object();
+        private readonly object _lockObj = new();
 
         public PacketCapture()
         {
@@ -29,12 +25,12 @@ namespace NetPacketCapture
 
         public List<DeviceInfo> GetDevices()
         {
-            var devices = new List<DeviceInfo>();
-            var captureDevices = CaptureDeviceList.Instance;
+            List<DeviceInfo> devices = new();
+            CaptureDeviceList captureDevices = CaptureDeviceList.Instance;
 
-            foreach (var device in captureDevices)
+            foreach (ILiveDevice? device in captureDevices)
             {
-                var info = new DeviceInfo
+                DeviceInfo info = new()
                 {
                     Name = device.Name,
                     Description = device.Description ?? "No description",
@@ -43,7 +39,7 @@ namespace NetPacketCapture
 
                 if (device is LibPcapLiveDevice pcapDevice)
                 {
-                    foreach (var addr in pcapDevice.Addresses)
+                    foreach (PcapAddress? addr in pcapDevice.Addresses)
                     {
                         if (addr.Addr != null)
                         {
@@ -65,14 +61,14 @@ namespace NetPacketCapture
 
         public void StartCapture(int deviceIndex, int packetLimit, string pcapFilePath, CancellationToken cancellationToken)
         {
-            var devices = CaptureDeviceList.Instance;
+            CaptureDeviceList devices = CaptureDeviceList.Instance;
             if (deviceIndex < 0 || deviceIndex >= devices.Count)
             {
                 throw new ArgumentException("Invalid device index");
             }
 
-            var device = devices[deviceIndex];
-            
+            ILiveDevice device = devices[deviceIndex];
+
             // Initialize PCAP writer if needed
             if (!string.IsNullOrEmpty(pcapFilePath))
             {
@@ -106,12 +102,14 @@ namespace NetPacketCapture
                         if (packetLimit > 0 && _packetCount >= packetLimit)
                         {
                             device.StopCapture();
+                            Log.Information("Reached packet limit {PacketLimit}", packetLimit);
                             Console.WriteLine($"\n✅ Reached packet limit ({packetLimit} packets)");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
+                    Log.Warning(ex, "Error processing packet: {Message}", ex.Message);
                     Console.WriteLine($"\n⚠️  Error processing packet: {ex.Message}");
                 }
             };
@@ -121,6 +119,7 @@ namespace NetPacketCapture
                 // Open device for capture
                 device.Open(DeviceModes.Promiscuous, 1000);
 
+                Log.Information("Listening on {Description} ({Name}) in Promiscuous mode", device.Description, device.Name);
                 Console.WriteLine($"📡 Listening on: {device.Description}");
                 Console.WriteLine($"📍 Device: {device.Name}");
                 Console.WriteLine($"🔓 Mode: Promiscuous (capturing all packets)\n");
@@ -133,7 +132,7 @@ namespace NetPacketCapture
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     Thread.Sleep(100);
-                    
+
                     lock (_lockObj)
                     {
                         if (packetLimit > 0 && _packetCount >= packetLimit)
@@ -153,6 +152,7 @@ namespace NetPacketCapture
                 device.Close();
                 _pcapWriter?.Close();
 
+                Log.Information("Total packets captured: {Count}", _packetCount);
                 Console.WriteLine($"\n📊 Total packets captured: {_packetCount}");
             }
         }

@@ -1,10 +1,23 @@
 
+using Microsoft.Extensions.Configuration;
+using Serilog;
+
 namespace NetPacketCapture
 {
     internal class Program
     {
         private static void Main(string[] args)
         {
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .Build();
+
+            Log.Logger = new LoggerConfiguration()
+                .ReadFrom.Configuration(configuration)
+                .CreateLogger();
+
+            Log.Information("NetPacketCapture starting");
             Console.WriteLine("╔══════════════════════════════════════════╗");
             Console.WriteLine("║   NetPacketCapture - Packet Sniffer      ║");
             Console.WriteLine("║   Layer 2 Ethernet Frame Capture         ║");
@@ -13,6 +26,7 @@ namespace NetPacketCapture
             // Check if running with appropriate permissions
             if (!PermissionHelper.HasRequiredPermissions())
             {
+                Log.Warning("This application requires elevated permissions.");
                 Console.WriteLine("⚠️  Warning: This application requires elevated permissions.");
                 if (Environment.OSVersion.Platform == PlatformID.Unix)
                 {
@@ -29,12 +43,14 @@ namespace NetPacketCapture
 
             try
             {
+                Log.Information("Initializing packet capture");
                 PacketCapture capture = new();
 
                 // List available interfaces
                 List<DeviceInfo> devices = capture.GetDevices();
                 if (devices.Count == 0)
                 {
+                    Log.Error("No network devices found");
                     Console.WriteLine("❌ No network devices found!");
                     Console.WriteLine("\nOn Windows: Install Npcap from https://npcap.com/");
                     Console.WriteLine("On Linux: Install libpcap-dev (sudo apt install libpcap-dev)");
@@ -98,28 +114,34 @@ namespace NetPacketCapture
                 };
 
                 // Start capture
+                Log.Information("Starting capture on interface {InterfaceIndex} with limit {PacketLimit} and pcap {PcapPath}", selectedIndex, packetLimit, pcapFilePath ?? "(none)");
                 capture.StartCapture(selectedIndex, packetLimit, pcapFilePath, cts.Token);
 
+                Log.Information("Capture completed successfully");
                 Console.WriteLine("\n✅ Capture completed successfully!");
                 if (saveToPcap && pcapFilePath != null)
                 {
+                    Log.Information("Packets saved to {PcapPath}", pcapFilePath);
                     Console.WriteLine($"📁 Packets saved to: {pcapFilePath}");
                     Console.WriteLine("   You can analyze this file with Wireshark");
                 }
             }
             catch (Exception ex)
             {
+                Log.Error(ex, "Unhandled error: {Message}", ex.Message);
                 Console.WriteLine($"\n❌ Error: {ex.Message}");
                 Console.WriteLine($"Details: {ex.GetType().Name}");
 
                 if (ex.InnerException != null)
                 {
+                    Log.Error(ex.InnerException, "Inner exception: {Message}", ex.InnerException.Message);
                     Console.WriteLine($"Inner Exception: {ex.InnerException.Message}");
                 }
             }
 
             Console.WriteLine("\nPress any key to exit...");
             Console.ReadKey();
+            Log.CloseAndFlush();
         }
     }
 
