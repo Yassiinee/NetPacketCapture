@@ -95,7 +95,9 @@ namespace NetPacketCapture
                 string pcapFilePath = null;
                 if (saveToPcap)
                 {
-                    pcapFilePath = $"capture_{DateTime.Now:yyyyMMdd_HHmmss}.pcap";
+                    string pcapDir = Path.Combine(AppContext.BaseDirectory, "pcap");
+                    Directory.CreateDirectory(pcapDir);
+                    pcapFilePath = Path.Combine(pcapDir, $"capture_{DateTime.Now:yyyyMMdd_HHmmss}.pcap");
                     Console.WriteLine($"Packets will be saved to: {pcapFilePath}");
                 }
 
