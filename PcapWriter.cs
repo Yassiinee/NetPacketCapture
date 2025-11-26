@@ -1,5 +1,6 @@
 using SharpPcap;
 using SharpPcap.LibPcap;
+using Serilog;
 
 namespace NetPacketCapture
 {
@@ -20,8 +21,7 @@ namespace NetPacketCapture
                 // Create PCAP writer
                 _writer = new CaptureFileWriterDevice(filePath, System.IO.FileMode.Create);
                 _writer.Open();
-
-                Console.WriteLine($"✅ PCAP writer initialized: {filePath}");
+                Log.Information("PCAP writer initialized: {FilePath}", filePath);
             }
             catch (Exception ex)
             {
@@ -47,7 +47,7 @@ namespace NetPacketCapture
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Warning: Failed to write packet to PCAP file: {ex.Message}");
+                Log.Warning(ex, "Failed to write packet to PCAP file: {Message}", ex.Message);
             }
         }
 
