@@ -38,12 +38,14 @@ namespace NetPacketCapture
 
             if (packet == null)
             {
+                Log.Debug("WritePacket called with null packet - skipping");
                 return;
             }
 
             try
             {
                 _writer.Write(packet);
+                Log.Verbose("Wrote packet to PCAP: Length={Length} Time={Time}", packet.Data?.Length ?? 0, packet.Timeval.Date);
             }
             catch (Exception ex)
             {
@@ -53,6 +55,7 @@ namespace NetPacketCapture
 
         public void Close()
         {
+            Log.Debug("Close called on PcapWriter");
             Dispose();
         }
 
@@ -60,7 +63,16 @@ namespace NetPacketCapture
         {
             if (!_disposed)
             {
-                _writer?.Close();
+                try
+                {
+                    _writer?.Close();
+                    Log.Information("PCAP writer closed.");
+                }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "Exception while closing PCAP writer: {Message}", ex.Message);
+                }
+
                 _disposed = true;
             }
         }
